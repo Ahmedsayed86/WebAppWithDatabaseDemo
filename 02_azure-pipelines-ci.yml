@@ -8,17 +8,17 @@ jobs:
 - job: WebApp
   displayName: 'Build Web App'
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-2022'
   variables:
     BuildConfiguration: release
   
   steps:
   
   - task: UseDotNet@2
-    displayName: Install .NET 6 sdk
+    displayName: Install .NET 8 sdk
     inputs:
       packageType: sdk
-      version: 6.0.x
+      version: 8.0.x
       installationPath: $(Agent.ToolsDirectory)/dotnet
 
   - task: DotNetCoreCLI@2
@@ -44,12 +44,12 @@ jobs:
     displayName: 'PS : Add Project GUID'
     enabled: false
   
-  - task: SonarCloudPrepare@1
-    displayName: 'Prepare analysis on SonarCloud'
-    inputs:
-      SonarCloud: SonarCloud
-      organization: houssemdellai
-      projectKey: WebAppWithDatabaseDemo
+- task: SonarCloudPrepare@4
+  inputs:
+    SonarQube: 'pipline'
+    organization: 'sonat-test'
+    scannerMode: 'dotnet'
+    projectKey: 'sonat-test'
   
   - task: DotNetCoreCLI@2
     displayName: Build
@@ -86,7 +86,7 @@ jobs:
 - job: Database
   displayName: 'Build Database'
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-2022'
 
   steps:
   - task: MSBuild@1
@@ -103,7 +103,7 @@ jobs:
 - job: Selenium
   displayName: 'Build UI Tests'
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-2022'
 
   steps:
   - task: NuGetToolInstaller@0
