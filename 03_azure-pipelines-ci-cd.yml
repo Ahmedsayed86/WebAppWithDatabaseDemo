@@ -33,7 +33,7 @@ stages:
   - job: WebApp
     displayName: Build Web App
     pool:
-      name: Hosted Windows 2022 with VS2019 
+      name: Hosted Windows 2022
       vmImage: 'windows-2022'
     variables:
       BuildConfiguration: release
@@ -106,9 +106,10 @@ stages:
     - task: SonarCloudAnalyze@4
       inputs:
         jdkversion: 'JAVA_HOME_17_X64'
-    - task: SonarCloudPublish@1
-      displayName: Publish Quality Gate Result
-      enabled: ${{ parameters.runCompletePipeline }}
+
+    - task: SonarCloudPublish@4
+      inputs:
+        pollingTimeoutSec: '300'
 
     - task: PublishBuildArtifacts@1
       displayName: Publish Artifact (WebApp.zip)
@@ -193,7 +194,7 @@ stages:
   - job: Create_DEV
     displayName: Create DEV
     pool:
-      vmImage: 'windows-20202'
+      vmImage: 'windows-2022'
     steps:
 
     - checkout: none
@@ -302,7 +303,7 @@ stages:
     - task: AzureRmWebAppDeployment@3
       displayName: Deploy WebApp to Azure
       inputs:
-        azureSubscription: 'WebAppWithDatabaseDemo_spn'
+        azureSubscription: 'azure new'
         appType: 'app'
         WebAppName: '$(WebAppName)'
         Package: '$(System.DefaultWorkingDirectory)/drop/WebApp.zip'
@@ -321,7 +322,7 @@ stages:
     - task: SqlAzureDacpacDeployment@1
       displayName: Deploy DacPac to SQL Azure
       inputs:
-        azureSubscription: 'WebAppWithDatabaseDemo_spn'
+        azureSubscription: 'azure new'
         AuthenticationType: 'server'
         ServerName: '$(SqlServerName).database.windows.net,1433'
         DatabaseName: '$(Database.Name)'
