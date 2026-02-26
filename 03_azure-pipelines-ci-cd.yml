@@ -33,7 +33,6 @@ stages:
   - job: WebApp
     displayName: Build Web App
     pool:
-      name: Hosted Windows 2022
       vmImage: 'windows-2022'
     variables:
       BuildConfiguration: release
