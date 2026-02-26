@@ -33,17 +33,17 @@ stages:
   - job: WebApp
     displayName: Build Web App
     pool:
-      name: Hosted Windows 2019 with VS2019 
-      vmImage: 'windows-2019'
+      name: Hosted Windows 2022 with VS2019 
+      vmImage: 'windows-2022'
     variables:
       BuildConfiguration: release
     steps:
 
     - task: UseDotNet@2
-      displayName: Install .NET 6 sdk
+      displayName: Install .NET 8 sdk
       inputs:
         packageType: sdk
-        version: 6.0.x
+        version: 8.0.x
         installationPath: $(Agent.ToolsDirectory)/dotnet
 
     - task: DotNetCoreCLI@2
@@ -75,14 +75,12 @@ stages:
                     $doc.Save($path)
                 }
         workingDirectory: 'WebApp'
-
-    - task: SonarCloudPrepare@1
-      displayName: Prepare analysis on SonarCloud
-      enabled: ${{ parameters.runCompletePipeline }}
+    - task: SonarCloudPrepare@4
       inputs:
-        SonarCloud: SonarCloud
-        organization: houssemdellai
-        projectKey: WebAppWithDatabaseDemo
+        SonarQube: 'pipline'
+        organization: 'sonat-test'
+        scannerMode: 'dotnet'
+        projectKey: 'webapp and Database'
 
     - task: DotNetCoreCLI@2
       displayName: Build WebApp
@@ -106,10 +104,9 @@ stages:
         arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
         zipAfterPublish: True
 
-    - task: SonarCloudAnalyze@1
-      displayName: Run Code Analysis
-      enabled: ${{ parameters.runCompletePipeline }}
-
+    - task: SonarCloudAnalyze@4
+      inputs:
+        jdkversion: 'JAVA_HOME_17_X64'
     - task: SonarCloudPublish@1
       displayName: Publish Quality Gate Result
       enabled: ${{ parameters.runCompletePipeline }}
@@ -123,7 +120,7 @@ stages:
   - job: Database
     displayName: Build Database
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-2022'
       demands: msbuild
     steps:
 
@@ -141,7 +138,7 @@ stages:
   - job: Selenium
     displayName: Build UI Tests
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-2022'
       demands: msbuild
 
     steps:
@@ -180,7 +177,7 @@ stages:
   displayName: Create & Deploy to Dev
   dependsOn: Build_Stage
   variables:
-    azureSubscription: 'WebAppWithDatabaseDemo_spn' # couldn't be referenced
+    azureSubscription: 'azure new' # couldn't be referenced
     ResourceGroupName: '$(Prefix)-$(Release.EnvironmentName)-$(UniqueId)-RG'
     Database.Admin: 'houssem'
     Database.Password: '@Aa123456' # to be secured in Key Vault
@@ -197,7 +194,7 @@ stages:
   - job: Create_DEV
     displayName: Create DEV
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-20202'
     steps:
 
     - checkout: none
@@ -211,10 +208,10 @@ stages:
       displayName: Validate ARM templates
       enabled: ${{ parameters.runCompletePipeline }}
       inputs:
-        azureSubscription: 'WebAppWithDatabaseDemo_spn'
+        azureSubscription: 'azure new'
         action: 'Create Or Update Resource Group'
         resourceGroupName: '$(ResourceGroupName)'
-        location: 'West Europe'
+        location: 'CanadaCentral '
         templateLocation: 'Linked artifact'
         csmFile: '$(System.DefaultWorkingDirectory)/arm/WebSiteSQLDatabase.json'
         csmParametersFile: '$(System.DefaultWorkingDirectory)/arm/WebSiteSQLDatabase.parameters.json'
@@ -252,22 +249,22 @@ stages:
     - task: AzureCLI@2
       displayName: Preview Template Changes (What-If)
       inputs:
-        workingDirectory: $(System.DefaultWorkingDirectory)/arm/
-        azureSubscription: 'WebAppWithDatabaseDemo_spn'
+        azureSubscription: 'azure new'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: 'az deployment group what-if --resource-group $(ResourceGroupName) --name rollout01 --template-file  WebSiteSQLDatabase.json --parameters WebSiteSQLDatabase.parameters.json'
         arguments: '-hostingPlanName $(hostingPlanName) -skuName "F1" -skuCapacity 1 -administratorLogin $(Database.Admin) -administratorLoginPassword $(Database.Password) -databaseName $(Database.Name) -collation "SQL_Latin1_General_CP1_CI_AS" -edition "Basic" -maxSizeBytes "1073741824" -requestedServiceObjectiveName "Basic" -webSiteName $(WebAppName) -sqlserverName $(SqlServerName)'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/arm/'
 
     - task: AzureResourceManagerTemplateDeployment@3
       displayName: Deploy ARM templates
       inputs:
         deploymentScope: 'Resource Group'
-        azureResourceManagerConnection: 'WebAppWithDatabaseDemo_spn'
-        subscriptionId: '4b72ed90-7ca3-4e76-8d0f-31a2c0bee7a3'
+        azureResourceManagerConnection: 'azure new'
+        subscriptionId: '39d9d727-1dbb-4b72-9a25-f5b2c5fe476a'
         action: 'Create Or Update Resource Group'
         resourceGroupName: '$(ResourceGroupName)'
-        location: 'West Europe'
+        location: 'CanadaCentral '
         templateLocation: 'Linked artifact'
         csmFile: '$(System.DefaultWorkingDirectory)/arm/WebSiteSQLDatabase.json'
         csmParametersFile: '$(System.DefaultWorkingDirectory)/arm/WebSiteSQLDatabase.parameters.json'
@@ -279,17 +276,17 @@ stages:
       enabled: ${{ parameters.runCompletePipeline }}
       continueOnError: true
       inputs:
-        ConnectedServiceNameARM: 'WebAppWithDatabaseDemo_spn'
+        ConnectedServiceNameARM: 'azure new'
         GenerateMethodParameterSetSelection: 'ResourceGroupName'
         ResourceGroupName: '$(ResourceGroupName)'
-        SubscriptionId: '4b72ed90-7ca3-4e76-8d0f-31a2c0bee7a3'
+        SubscriptionId: '39d9d727-1dbb-4b72-9a25-f5b2c5fe476a'
         EnableGSSscan: true
 
   - job: Deploy_DEV
     displayName: Deploy Apps to DEV
     dependsOn: Create_DEV
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-2022'
     steps:
 
     - checkout: none
@@ -340,7 +337,7 @@ stages:
     displayName: Run Selenium tests in DEV
     dependsOn: Deploy_DEV
     pool:
-      vmImage: 'windows-2019'
+      vmImage: 'windows-2022'
     steps:
 
     - checkout: none
