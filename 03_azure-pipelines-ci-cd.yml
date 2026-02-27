@@ -78,7 +78,7 @@ stages:
         SonarQube: 'pipline'
         organization: 'sonat-test'
         scannerMode: 'dotnet'
-        projectKey: 'webapp and Database'
+        projectKey: 'sonat-test'
 
     - task: DotNetCoreCLI@2
       displayName: Build WebApp
